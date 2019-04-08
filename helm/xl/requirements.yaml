@@ -58,6 +58,10 @@ dependencies:
     repository: file://../services/ml-datastore
     version: 0.1.0
     condition: metron.enabled
+  - name: ml-training
+    repository: file://../services/ml-training
+    version: 0.1.0
+    condition: metron.enabled
   - name: plan-orchestrator
     repository: file://../services/plan-orchestrator
     version: 0.1.0
@@ -72,14 +76,28 @@ dependencies:
     repository: file://../services/topology-processor
     version: 0.1.0
 
-# Monitoring dependencies
+# Logging dependencies
+  - name: elasticsearch
+    repository: file://../base/elasticsearch
+    version: 1.24.0
+    condition: global.elk
+  - name: kibana
+    repository: file://../base/kibana
+    version: 2.2.0
+    condition: global.elk
+  - name: logstash
+    repository: file://../base/logstash
+    version: 1.7.0
+    condition: global.elk
+
+  # Monitoring dependencies
   - name: prometheus
     repository: file://../base/prometheus
-    version: 8.4.3
+    version: 8.9.1
     condition: prometheus.enabled
   - name: grafana
     repository: file://../base/grafana
-    version: 1.25.1
+    version: 3.0.1
     condition: grafana.enabled
 
 # Mediation dependencies
