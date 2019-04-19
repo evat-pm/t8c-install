@@ -32,7 +32,7 @@ prometheus:
 grafana:
   enabled: false
 
-# Enable medation
+# Enable mediation
 actionscript:
   enabled: false
 aix:
