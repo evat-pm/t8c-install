@@ -8,5 +8,8 @@ LABEL name="Turbonomic Operator" \
       summary="This is an example t8c operator." \
       description="This operator will deploy an instance of t8c with persistent storage."
 
+# Required Licenses
+COPY licenses /licenses
+
 COPY watches.yaml ${HOME}/watches.yaml
 COPY helm-charts/ ${HOME}/helm-charts/
