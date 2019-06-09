@@ -9,6 +9,12 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
+env:
+  - name: component_type
+    value: nginx
+  - name: instance_id
+    value: nginx-1
+
 resources: {}
 
 nodeSelector: {}
