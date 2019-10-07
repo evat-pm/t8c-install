@@ -9,6 +9,17 @@
 # ip values set manually in /opt/local/etc/turbo.conf
 singleNodeIp=$(ip address show eth0 | egrep inet | egrep -v inet6 | awk '{print $2}' | awk -F/ '{print$1}')
 sed -i "s/10.0.2.15/${singleNodeIp}/g" /opt/local/etc/turbo.conf
+sed -i "s/10.0.2.15/${singleNodeIp}/g" /opt/turbonomic/kubernetes/operator/deploy/crds/charts_v1alpha1_xl_cr.yaml
+
+# Check /etc/resolv.conf
+if [[ ! -f /etc/resolv.conf || ! -s /etc/resolv.conf ]]
+then
+  echo ""
+  echo "exiting......"
+  echo "Please check there are valid nameservers in the /etc/resolv.conf"
+  echo ""
+  exit 0
+fi
 
 # Get the parameters used for kubernetes, gluster, turbo setup
 source /opt/local/etc/turbo.conf
@@ -110,7 +121,7 @@ pushd ${kubesprayPath} > /dev/null
 # Clear old host.ini file
 rm -rf ${kubesprayPath}/inventory/turbocluster
 cp -rfp ${kubesprayPath}/inventory/sample ${inventoryPath}
-CONFIG_FILE=inventory/turbocluster/hosts.ini python3.6 contrib/inventory_builder/inventory.py ${node[@]}
+CONFIG_FILE=inventory/turbocluster/hosts.yml python3.6 contrib/inventory_builder/inventory.py ${node[@]}
 
 # Adjust for relaxing the number of dns server allowed
 cp ${kubesprayPath}/roles/container-engine/docker/defaults/main.yml ${kubesprayPath}/roles/container-engine/docker/defaults/main.yml.orig
@@ -124,7 +135,7 @@ sed -i "s/${dns_strict}/${dns_not_strick_group}/g" ${inventoryPath}/group_vars/a
 sed -i "s/${helm_enabled}/${helm_enabled_group}/g" ${inventoryPath}/group_vars/k8s-cluster/addons.yml
 
 # Run ansible kubespray install
-ansible-playbook -i inventory/turbocluster/hosts.ini -b --become-user=root cluster.yml
+/usr/bin/ansible-playbook -i inventory/turbocluster/hosts.yml -b --become-user=root cluster.yml
 # Check on ansible status and exit out if there are any failures.
 ansibleStatus=$?
 # Reset the kubespray yaml back to the original source
@@ -317,26 +328,12 @@ then
     exit 0
   fi
   echo "######################################################################"
-  echo "                 Helm Chart Installation                              "
+  echo "                   Operator Installation                              "
   echo "######################################################################"
-   /usr/local/bin/helm init --client-only --skip-refresh
-   cp /opt/turbonomic/kubernetes/yaml/offline/offline-repository.yaml /opt/turbonomic/.helm/repository/repositories.yaml
-   /usr/local/bin/helm init
-   /usr/local/bin/kubectl apply -f /opt/turbonomic/kubernetes/yaml/helm/rbac_service_account.yaml
-   /usr/local/bin/helm dependency build /opt/turbonomic/kubernetes/helm/xl
-   /usr/local/bin/helm init --service-account tiller --upgrade
-   /usr/local/bin/helm install /opt/turbonomic/kubernetes/helm/xl --name xl-release --namespace ${namespace} \
-                                                                    --set-string global.tag=${turboVersion} \
-                                                                    --set-string global.externalIP=${node} \
-                                                                    --set vcenter.enabled=true \
-                                                                    --set hyperv.enabled=true \
-                                                                    --set actionscript.enabled=true \
-                                                                    --set netapp.enabled=true \
-                                                                    --set pure.enabled=true \
-                                                                    --set oneview.enabled=true \
-                                                                    --set ucs.enabled=true \
-                                                                    --set hpe3par.enabled=true \
-                                                                    --set vmax.enabled=true \
-                                                                    --set vmm.enabled=true \
-                                                                    --set appdynamics.enabled=true
+  kubectl create -f /opt/turbonomic/kubernetes/operator/deploy/service_account.yaml -n turbonomic
+  kubectl create -f /opt/turbonomic/kubernetes/operator/deploy/role.yaml -n turbonomic
+  kubectl create -f /opt/turbonomic/kubernetes/operator/deploy/role_binding.yaml -n turbonomic
+  kubectl create -f /opt/turbonomic/kubernetes/operator/deploy/crds/charts_v1alpha1_xl_crd.yaml -n turbonomic
+  kubectl create -f /opt/turbonomic/kubernetes/operator/deploy/operator.yaml -n turbonomic
+  kubectl create -f /opt/turbonomic/kubernetes/operator/deploy/crds/charts_v1alpha1_xl_cr.yaml -n turbonomic
 fi
